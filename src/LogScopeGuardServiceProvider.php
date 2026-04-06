@@ -8,6 +8,7 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schedule;
+use LogScopeGuard\Console\Commands\CleanupCommand;
 use LogScopeGuard\Console\Commands\InstallCommand;
 use LogScopeGuard\Console\Commands\SyncCommand;
 use LogScopeGuard\Events\IpBlocked;
@@ -30,7 +31,7 @@ class LogScopeGuardServiceProvider extends PackageServiceProvider
             ->hasMigration('create_blacklisted_ips_table')
             ->runsMigrations()
             ->hasViews()
-            ->hasCommands([InstallCommand::class, SyncCommand::class]);
+            ->hasCommands([InstallCommand::class, SyncCommand::class, CleanupCommand::class]);
     }
 
     public function registeringPackage(): void
@@ -62,6 +63,13 @@ class LogScopeGuardServiceProvider extends PackageServiceProvider
             Schedule::call(fn () => $this->app->make(AutoBlockService::class)->run())
                 ->everyMinute()
                 ->name('logscope-guard:auto-block')
+                ->withoutOverlapping();
+        }
+
+        if (config('logscope-guard.cleanup.enabled', true)) {
+            Schedule::command('guard:cleanup')
+                ->daily()
+                ->name('logscope-guard:cleanup')
                 ->withoutOverlapping();
         }
     }
