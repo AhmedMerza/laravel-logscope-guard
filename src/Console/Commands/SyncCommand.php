@@ -51,7 +51,8 @@ class SyncCommand extends Command
             }
 
             $blocks = $response->json('data', []);
-            $count = 0;
+            $synced = 0;
+            $skipped = 0;
 
             foreach ($blocks as $block) {
                 // Never downgrade a manual or auto block with a sync record —
@@ -59,7 +60,7 @@ class SyncCommand extends Command
                 $existing = BlacklistedIp::where('ip', $block['ip'])->first();
 
                 if ($existing && $existing->source !== BlockSource::Sync) {
-                    $count++;
+                    $skipped++;
                     continue;
                 }
 
@@ -74,12 +75,12 @@ class SyncCommand extends Command
                         'log_entry_id' => $block['log_entry_id'] ?? null,
                     ]
                 );
-                $count++;
+                $synced++;
             }
 
             $this->cache->rebuild();
 
-            $this->info("Synced {$count} IPs from master. Redis cache rebuilt.");
+            $this->info("Synced {$synced} IPs from master ({$skipped} skipped — local manual/auto blocks preserved). Redis cache rebuilt.");
 
             return self::SUCCESS;
 

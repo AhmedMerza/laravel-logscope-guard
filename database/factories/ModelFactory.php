@@ -1,6 +1,6 @@
 <?php
 
-namespace Ahmed Merza\LaravelLogscopeGuard\Database\Factories;
+namespace LogScopeGuard\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 

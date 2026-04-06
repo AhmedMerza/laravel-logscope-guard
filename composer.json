@@ -19,6 +19,7 @@
     ],
     "require": {
         "php": "^8.2",
+        "ahmedmerza/logscope": ">=1.5.2",
         "spatie/laravel-package-tools": "^1.16",
         "illuminate/contracts": ">=10.0",
         "illuminate/support": ">=10.0",
@@ -66,9 +67,6 @@
                 "LogScopeGuard\\LogScopeGuardServiceProvider"
             ]
         }
-    },
-    "suggest": {
-        "ahmedmerza/logscope": "Required — LogScope Guard is an extension of LogScope and cannot be used without it. Requires >=1.5.1 (the version that adds Guard hook points)."
     },
     "minimum-stability": "dev",
     "prefer-stable": true
