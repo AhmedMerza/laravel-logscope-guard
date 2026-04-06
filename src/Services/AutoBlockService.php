@@ -74,7 +74,8 @@ class AutoBlockService
                 ]);
             } catch (\RuntimeException $e) {
                 // IP is in the never-block whitelist — skip silently
-                Log::channel('stack')->debug('LogScope Guard: auto-block skipped for whitelisted IP', ['ip' => $ip]);
+                Log::channel(config('logscope-guard.log_channel', 'stack'))
+                    ->debug('LogScope Guard: auto-block skipped for whitelisted IP', ['ip' => $ip]);
             }
         }
     }

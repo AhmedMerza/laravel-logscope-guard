@@ -57,7 +57,7 @@ class PushBlockToMaster implements ShouldQueue
 
     public function failed(\Throwable $e): void
     {
-        Log::channel('stack')->warning('LogScope Guard: PushBlockToMaster failed', [
+        Log::channel(config('logscope-guard.log_channel', 'stack'))->warning('LogScope Guard: PushBlockToMaster failed', [
             'ip'    => $this->record->ip,
             'error' => $e->getMessage(),
         ]);

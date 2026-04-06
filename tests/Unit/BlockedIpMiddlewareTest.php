@@ -57,3 +57,27 @@ it('passes through all requests when Guard is disabled', function () {
 
     expect($response->getStatusCode())->toBe(200);
 });
+
+it('normalizes IPv4-mapped IPv6 before checking Redis', function () {
+    // ::ffff:1.2.3.4 should be normalized to 1.2.3.4 before the Redis lookup
+    $this->cache->shouldReceive('isBlocked')->with('1.2.3.4')->andReturn(true);
+
+    $request = Request::create('/test', 'GET');
+    $request->server->set('REMOTE_ADDR', '::ffff:1.2.3.4');
+
+    $response = $this->middleware->handle($request, $this->next);
+
+    expect($response->getStatusCode())->toBe(403);
+});
+
+it('redirects instead of 403 when block_response redirect is configured', function () {
+    config()->set('logscope-guard.block_response.redirect', 'https://example.com/blocked');
+    $this->cache->shouldReceive('isBlocked')->with('1.2.3.4')->andReturn(true);
+
+    $request = Request::create('/test', 'GET');
+    $request->server->set('REMOTE_ADDR', '1.2.3.4');
+
+    $response = $this->middleware->handle($request, $this->next);
+
+    expect($response->getStatusCode())->toBe(302);
+});

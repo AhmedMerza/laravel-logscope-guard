@@ -127,4 +127,27 @@ return [
         'queue'       => env('GUARD_NOTIFICATION_QUEUE', 'default'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Log Channel
+    |--------------------------------------------------------------------------
+    |
+    | All Guard-related log entries (sync failures, auto-block skips, webhook
+    | errors, push job failures) are written to this channel. Defaults to your
+    | app's 'stack' channel. Set to a dedicated channel to isolate Guard logs.
+    |
+    | Example .env: GUARD_LOG_CHANNEL=logscope_guard
+    |
+    | Then add a channel to config/logging.php:
+    |   'logscope_guard' => [
+    |       'driver' => 'daily',
+    |       'path'   => storage_path('logs/logscope-guard.log'),
+    |       'level'  => 'debug',
+    |       'days'   => 14,
+    |   ],
+    |
+    */
+
+    'log_channel' => env('GUARD_LOG_CHANNEL', 'stack'),
+
 ];

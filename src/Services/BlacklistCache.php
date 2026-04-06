@@ -59,9 +59,10 @@ class BlacklistCache
         } catch (\Throwable $e) {
             // Table doesn't exist yet (migration not run) or DB unavailable —
             // log and bail, keeping whatever Redis data was already there.
-            \Illuminate\Support\Facades\Log::warning('LogScope Guard: cache rebuild failed, keeping existing Redis data', [
-                'error' => $e->getMessage(),
-            ]);
+            \Illuminate\Support\Facades\Log::channel(config('logscope-guard.log_channel', 'stack'))
+                ->warning('LogScope Guard: cache rebuild failed, keeping existing Redis data', [
+                    'error' => $e->getMessage(),
+                ]);
 
             return;
         }

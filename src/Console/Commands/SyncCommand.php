@@ -45,7 +45,7 @@ class SyncCommand extends Command
 
             if (! $response->successful()) {
                 $this->error("Sync failed — master returned HTTP {$response->status()}.");
-                Log::channel('stack')->error('LogScope Guard: sync failed', ['status' => $response->status()]);
+                Log::channel(config('logscope-guard.log_channel', 'stack'))->error('LogScope Guard: sync failed', ['status' => $response->status()]);
 
                 return self::FAILURE;
             }
@@ -86,7 +86,7 @@ class SyncCommand extends Command
 
         } catch (\Throwable $e) {
             $this->error('Sync error: '.$e->getMessage());
-            Log::channel('stack')->error('LogScope Guard: sync exception', ['error' => $e->getMessage()]);
+            Log::channel(config('logscope-guard.log_channel', 'stack'))->error('LogScope Guard: sync exception', ['error' => $e->getMessage()]);
 
             return self::FAILURE;
         }
