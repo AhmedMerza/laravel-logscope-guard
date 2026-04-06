@@ -1,0 +1,110 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Redis;
+use LogScopeGuard\Enums\BlockSource;
+use LogScopeGuard\Events\IpBlocked;
+use LogScopeGuard\Models\BlacklistedIp;
+use LogScopeGuard\Services\BlacklistCache;
+
+beforeEach(function () {
+    // Mock Redis so feature tests don't require a real Redis connection
+    Redis::shouldReceive('connection')->andReturnSelf()->byDefault();
+    Redis::shouldReceive('del')->andReturn(1)->byDefault();
+    Redis::shouldReceive('hmset')->andReturn(true)->byDefault();
+    Redis::shouldReceive('expire')->andReturn(true)->byDefault();
+    Redis::shouldReceive('exists')->andReturn(0)->byDefault();
+    Redis::shouldReceive('hget')->andReturn(null)->byDefault();
+
+    Event::fake();
+    Queue::fake();
+
+    // Bypass LogScope's Authorize middleware in tests
+    $this->withoutMiddleware(\LogScope\Http\Middleware\Authorize::class);
+});
+
+it('blocks an IP via the API and updates the database', function () {
+    $response = $this->postJson('/logscope/guard/api/block', [
+        'ip'     => '10.0.0.1',
+        'reason' => 'suspicious traffic',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.ip', '10.0.0.1')
+        ->assertJsonPath('data.reason', 'suspicious traffic');
+
+    $this->assertDatabaseHas('blacklisted_ips', [
+        'ip'     => '10.0.0.1',
+        'source' => 'manual',
+    ]);
+
+    Event::assertDispatched(IpBlocked::class);
+});
+
+it('returns 422 when trying to block a whitelisted IP', function () {
+    config()->set('logscope-guard.never_block', ['127.0.0.1']);
+
+    $response = $this->postJson('/logscope/guard/api/block', ['ip' => '127.0.0.1']);
+
+    $response->assertStatus(422)
+        ->assertJsonStructure(['error']);
+});
+
+it('unblocks an IP via the API', function () {
+    BlacklistedIp::create([
+        'ip'         => '10.0.0.2',
+        'source'     => BlockSource::Manual,
+        'source_env' => 'testing',
+    ]);
+
+    $response = $this->deleteJson('/logscope/guard/api/block/10.0.0.2');
+
+    $response->assertStatus(200)
+        ->assertJsonPath('deleted', true);
+
+    $this->assertDatabaseMissing('blacklisted_ips', ['ip' => '10.0.0.2']);
+});
+
+it('returns the correct status for a blocked IP', function () {
+    BlacklistedIp::create([
+        'ip'         => '10.0.0.3',
+        'source'     => BlockSource::Manual,
+        'source_env' => 'testing',
+        'expires_at' => null,
+    ]);
+
+    $response = $this->getJson('/logscope/guard/api/status/10.0.0.3');
+
+    $response->assertStatus(200)
+        ->assertJsonPath('blocked', true);
+});
+
+it('returns the correct status for an unblocked IP', function () {
+    $response = $this->getJson('/logscope/guard/api/status/9.9.9.9');
+
+    $response->assertStatus(200)
+        ->assertJsonPath('blocked', false);
+});
+
+it('returns the full list of active blocks', function () {
+    BlacklistedIp::create(['ip' => '1.1.1.1', 'source' => BlockSource::Manual, 'source_env' => 'testing']);
+    BlacklistedIp::create(['ip' => '2.2.2.2', 'source' => BlockSource::Auto, 'source_env' => 'testing']);
+
+    $response = $this->getJson('/logscope/guard/api/blocks');
+
+    $response->assertStatus(200)
+        ->assertJsonCount(2, 'data');
+});
+
+it('does not return expired blocks in the list', function () {
+    BlacklistedIp::create(['ip' => '1.1.1.1', 'source' => BlockSource::Manual, 'source_env' => 'testing', 'expires_at' => now()->subHour()]);
+    BlacklistedIp::create(['ip' => '2.2.2.2', 'source' => BlockSource::Manual, 'source_env' => 'testing', 'expires_at' => now()->addHour()]);
+
+    $response = $this->getJson('/logscope/guard/api/blocks');
+
+    $response->assertStatus(200)
+        ->assertJsonCount(1, 'data');
+});
