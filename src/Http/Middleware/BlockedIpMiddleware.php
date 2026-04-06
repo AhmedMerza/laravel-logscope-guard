@@ -39,7 +39,7 @@ class BlockedIpMiddleware
                 return redirect($blockConfig['redirect']);
             }
 
-            abort($blockConfig['status'], $blockConfig['message']);
+            return response($blockConfig['message'], $blockConfig['status']);
         }
 
         return $next($request);

@@ -53,13 +53,16 @@ it('never deletes permanent blocks (expires_at is null)', function () {
 
     $this->artisan('guard:cleanup')
         ->assertSuccessful()
-        ->expectsOutputToContain('Removed 0 expired block');
+        ->expectsOutputToContain('Nothing to clean up');
 
     $this->assertDatabaseHas('blacklisted_ips', ['ip' => '3.3.3.3']);
 });
 
 it('only rebuilds the cache when records were deleted', function () {
-    // No expired blocks — cache should not be rebuilt
+    // No expired blocks exist, so rebuild() (which calls del) must not be called.
+    // warmOnBoot() won't trigger del here because Redis::exists() is mocked to
+    // return 1 (key exists), so it short-circuits before calling rebuild().
+    Redis::shouldReceive('exists')->andReturn(1)->byDefault();
     Redis::shouldNotReceive('del');
 
     BlacklistedIp::create([
@@ -72,10 +75,10 @@ it('only rebuilds the cache when records were deleted', function () {
     $this->artisan('guard:cleanup')->assertSuccessful();
 });
 
-it('reports zero when nothing to clean up', function () {
+it('reports nothing to clean up when the table is empty', function () {
     $this->artisan('guard:cleanup')
         ->assertSuccessful()
-        ->expectsOutputToContain('Removed 0 expired block');
+        ->expectsOutputToContain('Nothing to clean up');
 });
 
 it('can still be run manually even when GUARD_CLEANUP_ENABLED is false', function () {

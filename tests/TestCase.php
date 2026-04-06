@@ -26,6 +26,8 @@ class TestCase extends Orchestra
 
     public function getEnvironmentSetUp($app): void
     {
+        config()->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
+
         config()->set('database.default', 'testing');
         config()->set('database.connections.testing', [
             'driver'   => 'sqlite',
@@ -37,5 +39,19 @@ class TestCase extends Orchestra
         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__.'/../database/migrations') as $migration) {
             (include $migration->getRealPath())->up();
         }
+
+        // Create a minimal log_entries table so AutoBlockService tests can run
+        // without requiring the full LogScope package to be installed.
+        \Illuminate\Support\Facades\DB::statement('
+            CREATE TABLE IF NOT EXISTS log_entries (
+                id VARCHAR(26) PRIMARY KEY,
+                level VARCHAR(20) NOT NULL,
+                message TEXT NOT NULL,
+                ip_address VARCHAR(50),
+                occurred_at DATETIME NOT NULL,
+                created_at DATETIME,
+                updated_at DATETIME
+            )
+        ');
     }
 }

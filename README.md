@@ -225,8 +225,9 @@ php artisan guard:install
 # Pull blacklist from master and rebuild local Redis cache
 php artisan guard:sync
 
-# Delete expired temporary blocks and rebuild Redis cache
+# Delete expired temporary blocks and rebuild the Redis cache
 # Runs automatically every day — set GUARD_CLEANUP_ENABLED=false to manage manually
+# Permanent blocks (no expiry) are never touched
 php artisan guard:cleanup
 ```
 

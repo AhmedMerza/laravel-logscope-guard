@@ -27,9 +27,10 @@ class CleanupCommand extends Command
 
         if ($deleted > 0) {
             $this->cache->rebuild();
+            $this->info("Removed {$deleted} expired block(s). Redis cache rebuilt.");
+        } else {
+            $this->info('Nothing to clean up — no expired blocks found.');
         }
-
-        $this->info("Removed {$deleted} expired block(s). Redis cache rebuilt.");
 
         return self::SUCCESS;
     }
