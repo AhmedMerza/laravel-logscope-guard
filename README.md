@@ -53,7 +53,7 @@ Every incoming request is checked against a **Redis Hash** before any middleware
 - PHP 8.2+
 - Laravel 10+
 - Redis
-- [ahmedmerza/logscope](https://github.com/AhmedMerza/laravel-logscope) >= 1.5.1
+- [ahmedmerza/logscope](https://github.com/AhmedMerza/laravel-logscope) >= 1.5.2
 
 ---
 
@@ -98,6 +98,12 @@ GUARD_AUTO_BLOCK_DURATION=60
 # Webhook notification on every block (optional — useful for n8n, Slack, WhatsApp)
 GUARD_WEBHOOK_URL=
 GUARD_NOTIFICATION_QUEUE=default
+
+# Dedicated log channel for Guard events (sync failures, auto-block skips, etc.)
+GUARD_LOG_CHANNEL=stack
+
+# Automatic cleanup of expired temporary blocks (runs daily)
+GUARD_CLEANUP_ENABLED=true
 ```
 
 ### Block Response
@@ -218,6 +224,11 @@ php artisan guard:install
 
 # Pull blacklist from master and rebuild local Redis cache
 php artisan guard:sync
+
+# Delete expired temporary blocks and rebuild the Redis cache
+# Runs automatically every day — set GUARD_CLEANUP_ENABLED=false to manage manually
+# Permanent blocks (no expiry) are never touched
+php artisan guard:cleanup
 ```
 
 ---

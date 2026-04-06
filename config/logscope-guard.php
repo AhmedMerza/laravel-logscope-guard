@@ -150,4 +150,22 @@ return [
 
     'log_channel' => env('GUARD_LOG_CHANNEL', 'stack'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cleanup
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, Guard automatically runs 'guard:cleanup' daily to remove
+    | expired temporary blocks from the database. Only rows with a past
+    | expires_at are deleted — permanent blocks (expires_at = null) are
+    | never touched.
+    |
+    | Set to false if you prefer to schedule or run cleanup manually.
+    |
+    */
+
+    'cleanup' => [
+        'enabled' => env('GUARD_CLEANUP_ENABLED', true),
+    ],
+
 ];

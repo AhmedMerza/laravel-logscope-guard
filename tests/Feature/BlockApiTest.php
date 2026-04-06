@@ -76,6 +76,11 @@ it('returns the correct status for a blocked IP', function () {
         'expires_at' => null,
     ]);
 
+    // status() checks Redis as truth — simulate a permanent block (empty string)
+    Redis::shouldReceive('hget')
+        ->with('logscope_guard:blacklist', '10.0.0.3')
+        ->andReturn('');
+
     $response = $this->getJson('/logscope/guard/api/status/10.0.0.3');
 
     $response->assertStatus(200)
