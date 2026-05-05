@@ -97,24 +97,47 @@ return [
     | Automatically block IPs that match log-based rules. Disabled by default.
     | Rules are evaluated every minute via the scheduler.
     |
+    | Mode (global default — overrideable per rule):
+    |   'block'    - actually block matching IPs (production behaviour).
+    |   'warn'     - match the rule and emit a structured `would_have_blocked`
+    |                log entry on the configured `log_channel`, but do NOT
+    |                block. Use this when first turning auto-block on in a
+    |                new environment: tail your logs (or query LogScope) for
+    |                `would_have_blocked: true` to see what a rule WOULD
+    |                catch before letting it lock anyone out. Once you trust
+    |                the rule, flip to 'block'.
+    |   'disabled' - skip the rule entirely. Useful as a per-rule kill switch
+    |                without removing the rule definition.
+    |
     | Rule shape:
     |   level            - log level to match (e.g. 'error', 'warning'). Null = any.
     |   message_contains - substring match on log message. Null = any.
     |   count            - number of matching logs within the window to trigger a block.
     |   window_minutes   - look-back window for counting logs.
+    |   mode             - (optional) override the global mode for this rule only.
     |
     */
 
     'auto_block' => [
         'enabled'                => env('WATCHTOWER_AUTO_BLOCK_ENABLED', env('GUARD_AUTO_BLOCK_ENABLED', false)),
+        'mode'                   => env('WATCHTOWER_AUTO_BLOCK_MODE', 'block'),
         'block_duration_minutes' => env('WATCHTOWER_AUTO_BLOCK_DURATION', env('GUARD_AUTO_BLOCK_DURATION', 60)),
         'rules'                  => [
-            // Example:
+            // Example — production rule:
             // [
             //     'level'            => 'error',
             //     'message_contains' => null,
             //     'count'            => 50,
             //     'window_minutes'   => 5,
+            // ],
+            //
+            // Example — same rule running in warn mode while you tune it:
+            // [
+            //     'level'            => 'error',
+            //     'message_contains' => null,
+            //     'count'            => 50,
+            //     'window_minutes'   => 5,
+            //     'mode'             => 'warn',
             // ],
         ],
     ],

@@ -4,6 +4,10 @@ All notable changes to `laravel-watchtower` will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Auto-block warn-only mode** — new `watchtower.auto_block.mode` config (`block` | `warn` | `disabled`, default `block`) plus optional per-rule `mode` override. In `warn` mode, the engine matches rules and emits a structured `would_have_blocked: true` log entry on the configured `log_channel`, but does NOT actually block — operators can validate a rule against real traffic before flipping it to `block`. `disabled` skips a rule entirely (per-rule kill switch). New env var: `WATCHTOWER_AUTO_BLOCK_MODE`. Backward-compatible: configs that don't set a mode get the prior `block` behaviour.
+
 ### Changed (BREAKING — single rename release)
 
 - **Package renamed: `ahmedmerza/logscope-guard` → `ahmedmerza/laravel-watchtower`.** Reflects the strategic pivot away from "LogScope addon" toward "standalone Laravel app-edge blocker, with optional LogScope integration."
