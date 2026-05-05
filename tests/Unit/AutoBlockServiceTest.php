@@ -381,9 +381,18 @@ it('disabled mode skips the rule entirely (no block, no warn log)', function () 
         'updated_at'  => now(),
     ]);
 
-    // No log channel calls expected — Log::shouldNotReceive('channel') would
-    // be too strict (other code paths may resolve channels), so we just
-    // assert no blocks, no warn entries (the latter via DB absence).
+    // Pin the contract: disabled mode must not emit ANY warn-level log entry.
+    // DB-absence alone wouldn't catch a regression where a refactored
+    // disabled-mode path still ran applyRule() and emitted warns. Allow other
+    // log methods so unrelated code paths (debug, etc.) don't false-positive
+    // this assertion if anything else happens to resolve a channel.
+    $logChannel = \Mockery::mock();
+    $logChannel->shouldNotReceive('warning');
+    $logChannel->shouldReceive('debug')->zeroOrMoreTimes();
+    $logChannel->shouldReceive('info')->zeroOrMoreTimes();
+    $logChannel->shouldReceive('error')->zeroOrMoreTimes();
+    \Illuminate\Support\Facades\Log::shouldReceive('channel')->andReturn($logChannel);
+
     $this->service->run();
 
     $this->assertDatabaseMissing('blacklisted_ips', ['ip' => '15.15.15.15']);
