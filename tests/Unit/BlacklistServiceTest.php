@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
-use LogScopeGuard\Enums\BlockSource;
-use LogScopeGuard\Events\IpBlocked;
-use LogScopeGuard\Jobs\PushBlockToMaster;
-use LogScopeGuard\Models\BlacklistedIp;
-use LogScopeGuard\Services\BlacklistCache;
-use LogScopeGuard\Services\BlacklistService;
+use Watchtower\Enums\BlockSource;
+use Watchtower\Events\IpBlocked;
+use Watchtower\Jobs\PushBlockToMaster;
+use Watchtower\Models\BlacklistedIp;
+use Watchtower\Services\BlacklistCache;
+use Watchtower\Services\BlacklistService;
 
 beforeEach(function () {
     $this->cache = Mockery::mock(BlacklistCache::class);
@@ -45,7 +45,7 @@ it('fires the IpBlocked event on block', function () {
 it('dispatches PushBlockToMaster when master URL is configured', function () {
     Event::fake();
     Queue::fake();
-    config()->set('logscope-guard.sync.master_url', 'https://master.example.com');
+    config()->set('watchtower.sync.master_url', 'https://master.example.com');
 
     $this->service->block('1.2.3.4');
 
@@ -55,7 +55,7 @@ it('dispatches PushBlockToMaster when master URL is configured', function () {
 it('does not dispatch PushBlockToMaster when master URL is not configured', function () {
     Event::fake();
     Queue::fake();
-    config()->set('logscope-guard.sync.master_url', null);
+    config()->set('watchtower.sync.master_url', null);
 
     $this->service->block('1.2.3.4');
 
@@ -63,7 +63,7 @@ it('does not dispatch PushBlockToMaster when master URL is not configured', func
 });
 
 it('throws when blocking a never-block whitelisted IP', function () {
-    config()->set('logscope-guard.never_block', ['1.2.3.4']);
+    config()->set('watchtower.never_block', ['1.2.3.4']);
 
     expect(fn () => $this->service->block('1.2.3.4'))
         ->toThrow(\RuntimeException::class, 'never-block whitelist');

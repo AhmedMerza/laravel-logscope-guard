@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Http\Controllers;
+namespace Watchtower\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use LogScopeGuard\Models\BlacklistedIp;
-use LogScopeGuard\Services\BlacklistService;
+use Watchtower\Models\BlacklistedIp;
+use Watchtower\Services\BlacklistService;
 
 class BlockController extends Controller
 {

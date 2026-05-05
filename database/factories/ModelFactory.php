@@ -1,6 +1,6 @@
 <?php
 
-namespace LogScopeGuard\Database\Factories;
+namespace Watchtower\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Http\Middleware;
+namespace Watchtower\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use LogScopeGuard\Services\BlacklistCache;
+use Watchtower\Services\BlacklistCache;
 use Symfony\Component\HttpFoundation\Response;
 
 class BlockedIpMiddleware
@@ -15,7 +15,7 @@ class BlockedIpMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! config('logscope-guard.enabled', true)) {
+        if (! config('watchtower.enabled', true)) {
             return $next($request);
         }
 
@@ -28,12 +28,12 @@ class BlockedIpMiddleware
         $normalized = $this->normalizeIp($ip);
 
         // Never block whitelisted IPs — check before Redis to guarantee safety
-        if (in_array($normalized, config('logscope-guard.never_block', []), true)) {
+        if (in_array($normalized, config('watchtower.never_block', []), true)) {
             return $next($request);
         }
 
         if ($this->cache->isBlocked($normalized)) {
-            $blockConfig = config('logscope-guard.block_response');
+            $blockConfig = config('watchtower.block_response');
 
             if ($blockConfig['redirect']) {
                 return redirect($blockConfig['redirect']);

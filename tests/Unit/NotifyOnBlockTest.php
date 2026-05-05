@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
-use LogScopeGuard\Enums\BlockSource;
-use LogScopeGuard\Events\IpBlocked;
-use LogScopeGuard\Listeners\NotifyOnBlock;
-use LogScopeGuard\Models\BlacklistedIp;
+use Watchtower\Enums\BlockSource;
+use Watchtower\Events\IpBlocked;
+use Watchtower\Listeners\NotifyOnBlock;
+use Watchtower\Models\BlacklistedIp;
 
 beforeEach(function () {
     $this->record = BlacklistedIp::create([
@@ -21,7 +21,7 @@ beforeEach(function () {
 });
 
 it('does nothing when webhook URL is not configured', function () {
-    config()->set('logscope-guard.notifications.webhook_url', null);
+    config()->set('watchtower.notifications.webhook_url', null);
 
     Http::fake();
 
@@ -31,7 +31,7 @@ it('does nothing when webhook URL is not configured', function () {
 });
 
 it('posts to the webhook URL with the correct payload', function () {
-    config()->set('logscope-guard.notifications.webhook_url', 'https://hooks.example.com/notify');
+    config()->set('watchtower.notifications.webhook_url', 'https://hooks.example.com/notify');
 
     Http::fake([
         'hooks.example.com/notify' => Http::response([], 200),
@@ -49,8 +49,8 @@ it('posts to the webhook URL with the correct payload', function () {
 });
 
 it('catches exceptions and does not re-throw', function () {
-    config()->set('logscope-guard.notifications.webhook_url', 'https://hooks.example.com/notify');
-    config()->set('logscope-guard.log_channel', 'stack');
+    config()->set('watchtower.notifications.webhook_url', 'https://hooks.example.com/notify');
+    config()->set('watchtower.log_channel', 'stack');
 
     Http::fake([
         'hooks.example.com/notify' => fn () => throw new \Exception('connection failed'),
