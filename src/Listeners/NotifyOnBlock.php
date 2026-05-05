@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Listeners;
+namespace Watchtower\Listeners;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use LogScopeGuard\Events\IpBlocked;
+use Watchtower\Events\IpBlocked;
 
 class NotifyOnBlock implements ShouldQueue
 {
@@ -15,7 +15,7 @@ class NotifyOnBlock implements ShouldQueue
 
     public function handle(IpBlocked $event): void
     {
-        $webhookUrl = config('logscope-guard.notifications.webhook_url');
+        $webhookUrl = config('watchtower.notifications.webhook_url');
 
         if (! $webhookUrl) {
             return;
@@ -32,7 +32,7 @@ class NotifyOnBlock implements ShouldQueue
                 'blocked_at' => $event->record->created_at->toIso8601String(),
             ]);
         } catch (\Throwable $e) {
-            Log::channel(config('logscope-guard.log_channel', 'stack'))->warning('LogScope Guard: webhook notification failed', [
+            Log::channel(config('watchtower.log_channel', 'stack'))->warning('LogScope Guard: webhook notification failed', [
                 'ip'    => $event->record->ip,
                 'error' => $e->getMessage(),
             ]);

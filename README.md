@@ -1,20 +1,31 @@
-# LogScope Guard
+# Watchtower for Laravel
 
-[![License](https://img.shields.io/github/license/AhmedMerza/laravel-logscope-guard?style=flat-square)](LICENSE.md)
+[![License](https://img.shields.io/github/license/AhmedMerza/laravel-watchtower?style=flat-square)](LICENSE.md)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-blue?style=flat-square)](https://php.net)
 
-IP blocking and cross-environment blacklist sync for [LogScope](https://github.com/AhmedMerza/laravel-logscope).
+> **Active blocking and cross-server coordination at the edge of your Laravel app** — block bad actors in your management UI, and every other environment sees the block within minutes. No Cloudflare, no AWS WAF, no infrastructure changes. Optional integration with LogScope adds one-click block from any log entry.
 
-A malicious IP hits staging. You block it from the LogScope UI. Every other environment syncs within minutes — automatically.
+> ⚠️ **This README is mid-rewrite.** The package was renamed from `ahmedmerza/logscope-guard` to `ahmedmerza/laravel-watchtower`. Most code examples below still describe the LogScope-integrated experience accurately; standalone-first documentation is landing in a follow-up PR.
 
 ## Quick Start
 
+**With LogScope:**
+
 ```bash
-composer require ahmedmerza/logscope-guard
-php artisan guard:install
+composer require ahmedmerza/laravel-watchtower
+php artisan watchtower:install
 ```
 
-That's it. A **Block IP** button now appears in the LogScope detail panel whenever a log entry has an IP address.
+A **Block IP** button now appears in your LogScope detail panel whenever a log entry has an IP address.
+
+**Standalone (no LogScope):**
+
+```bash
+composer require ahmedmerza/laravel-watchtower
+php artisan watchtower:install
+```
+
+Routes mount at `/watchtower/api/...`. Until v1.1 ships proper standalone auth, wrap them in your own auth middleware via `config/watchtower.php` → `routes.middleware` (e.g. `['web', 'auth']` plus a Gate check), or set `WATCHTOWER_ROUTES_ENABLED=false` if you don't need the UI yet.
 
 ---
 
@@ -27,7 +38,7 @@ Admin blocks IP in LogScope UI (staging)
     │
     └─► Queued job pushes block to master env
             │
-            └─► Every other env pulls from master via guard:sync (every 5 min)
+            └─► Every other env pulls from master via watchtower:sync (every 5 min)
                     └─► Redis rebuilt → all environments protected
 ```
 
@@ -60,18 +71,18 @@ Every incoming request is checked against a **Redis Hash** before any middleware
 ## 📦 Installation
 
 ```bash
-composer require ahmedmerza/logscope-guard
-php artisan guard:install
+composer require ahmedmerza/watchtower
+php artisan watchtower:install
 ```
 
 The install command publishes the config and runs the migration. Add these to your `.env`:
 
 ```env
-GUARD_ENABLED=true
-GUARD_NEVER_BLOCK_IPS=127.0.0.1,::1,your.own.ip
+WATCHTOWER_ENABLED=true
+WATCHTOWER_NEVER_BLOCK_IPS=127.0.0.1,::1,your.own.ip
 ```
 
-> **Important:** Add your own IP to `GUARD_NEVER_BLOCK_IPS` before enabling. You cannot be blocked by an IP on this list — it is checked before any block operation and before Redis.
+> **Important:** Add your own IP to `WATCHTOWER_NEVER_BLOCK_IPS` before enabling. You cannot be blocked by an IP on this list — it is checked before any block operation and before Redis.
 
 ---
 
@@ -79,31 +90,31 @@ GUARD_NEVER_BLOCK_IPS=127.0.0.1,::1,your.own.ip
 
 ```env
 # Master switch
-GUARD_ENABLED=true
+WATCHTOWER_ENABLED=true
 
 # IPs that can never be blocked (comma-separated) — prevents self-lockout
-GUARD_NEVER_BLOCK_IPS=127.0.0.1,::1
+WATCHTOWER_NEVER_BLOCK_IPS=127.0.0.1,::1
 
 # Redis connection to use for the blacklist hash
-GUARD_REDIS_CONNECTION=default
+WATCHTOWER_REDIS_CONNECTION=default
 
 # Cross-environment sync
-GUARD_MASTER_URL=https://your-master-app.com
-GUARD_SYNC_SECRET=a-long-random-secret
+WATCHTOWER_MASTER_URL=https://your-master-app.com
+WATCHTOWER_SYNC_SECRET=a-long-random-secret
 
 # Auto-block engine (disabled by default)
-GUARD_AUTO_BLOCK_ENABLED=false
-GUARD_AUTO_BLOCK_DURATION=60
+WATCHTOWER_AUTO_BLOCK_ENABLED=false
+WATCHTOWER_AUTO_BLOCK_DURATION=60
 
 # Webhook notification on every block (optional — useful for n8n, Slack, WhatsApp)
-GUARD_WEBHOOK_URL=
-GUARD_NOTIFICATION_QUEUE=default
+WATCHTOWER_WEBHOOK_URL=
+WATCHTOWER_NOTIFICATION_QUEUE=default
 
 # Dedicated log channel for Guard events (sync failures, auto-block skips, etc.)
-GUARD_LOG_CHANNEL=stack
+WATCHTOWER_LOG_CHANNEL=stack
 
 # Automatic cleanup of expired temporary blocks (runs daily)
-GUARD_CLEANUP_ENABLED=true
+WATCHTOWER_CLEANUP_ENABLED=true
 ```
 
 ### Block Response
@@ -111,7 +122,7 @@ GUARD_CLEANUP_ENABLED=true
 By default, blocked IPs receive a plain `403 Access denied.` response. To redirect instead:
 
 ```php
-// config/logscope-guard.php
+// config/watchtower.php
 'block_response' => [
     'status'   => 403,
     'message'  => 'Access denied.',
@@ -130,8 +141,8 @@ Guard supports a **master/satellite** topology. One environment (production) is 
 **On every environment** (master + satellites), add to `.env`:
 
 ```env
-GUARD_MASTER_URL=https://your-production-app.com
-GUARD_SYNC_SECRET=same-secret-on-all-environments
+WATCHTOWER_MASTER_URL=https://your-production-app.com
+WATCHTOWER_SYNC_SECRET=same-secret-on-all-environments
 ```
 
 **On the master app**, expose two routes that satellites call:
@@ -139,11 +150,11 @@ GUARD_SYNC_SECRET=same-secret-on-all-environments
 ```php
 // routes/web.php (or api.php) — protect with HMAC middleware
 Route::get('/guard/api/blacklist', fn () => response()->json([
-    'data' => \LogScopeGuard\Models\BlacklistedIp::active()->get(),
+    'data' => \Watchtower\Models\BlacklistedIp::active()->get(),
 ]));
 
 Route::post('/guard/api/block', function (Request $request) {
-    app(\LogScopeGuard\Services\BlacklistService::class)->block(
+    app(\Watchtower\Services\BlacklistService::class)->block(
         $request->input('ip'),
         $request->only(['reason', 'source_env', 'expires_at', 'blocked_by'])
     );
@@ -155,10 +166,10 @@ Route::post('/guard/api/block', function (Request $request) {
 
 ```php
 // Laravel 11+ (routes/console.php)
-Schedule::command('guard:sync')->everyFiveMinutes();
+Schedule::command('watchtower:sync')->everyFiveMinutes();
 
 // Laravel 10 (app/Console/Kernel.php)
-$schedule->command('guard:sync')->everyFiveMinutes();
+$schedule->command('watchtower:sync')->everyFiveMinutes();
 ```
 
 ### How Push + Pull Work Together
@@ -166,7 +177,7 @@ $schedule->command('guard:sync')->everyFiveMinutes();
 | Direction | Trigger | Speed |
 |-----------|---------|-------|
 | **Push** (satellite → master) | Every `BlacklistService::block()` call | Immediate (queued job) |
-| **Pull** (master → satellites) | `guard:sync` schedule | Every 5 min (configurable) |
+| **Pull** (master → satellites) | `watchtower:sync` schedule | Every 5 min (configurable) |
 
 Block on staging → staging protected instantly → master updated asynchronously → production/alpha pull it within 5 minutes.
 
@@ -177,15 +188,15 @@ Block on staging → staging protected instantly → master updated asynchronous
 Automatically block IPs based on log patterns. Disabled by default.
 
 ```env
-GUARD_AUTO_BLOCK_ENABLED=true
-GUARD_AUTO_BLOCK_DURATION=60  # minutes
+WATCHTOWER_AUTO_BLOCK_ENABLED=true
+WATCHTOWER_AUTO_BLOCK_DURATION=60  # minutes
 ```
 
-Define rules in `config/logscope-guard.php`:
+Define rules in `config/watchtower.php`:
 
 ```php
 'auto_block' => [
-    'enabled'                => env('GUARD_AUTO_BLOCK_ENABLED', false),
+    'enabled'                => env('WATCHTOWER_AUTO_BLOCK_ENABLED', false),
     'block_duration_minutes' => 60,
     'rules' => [
         // Block IPs that generate 50+ errors in 5 minutes
@@ -212,7 +223,7 @@ Rules run every minute via the scheduler. Add the scheduler to your server if no
 * * * * * cd /your-app && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-> **Note:** IPs in `GUARD_NEVER_BLOCK_IPS` are never auto-blocked, even if they match a rule.
+> **Note:** IPs in `WATCHTOWER_NEVER_BLOCK_IPS` are never auto-blocked, even if they match a rule.
 
 ---
 
@@ -220,15 +231,15 @@ Rules run every minute via the scheduler. Add the scheduler to your server if no
 
 ```bash
 # First-time setup (publish config + run migration)
-php artisan guard:install
+php artisan watchtower:install
 
 # Pull blacklist from master and rebuild local Redis cache
-php artisan guard:sync
+php artisan watchtower:sync
 
 # Delete expired temporary blocks and rebuild the Redis cache
-# Runs automatically every day — set GUARD_CLEANUP_ENABLED=false to manage manually
+# Runs automatically every day — set WATCHTOWER_CLEANUP_ENABLED=false to manage manually
 # Permanent blocks (no expiry) are never touched
-php artisan guard:cleanup
+php artisan watchtower:cleanup
 ```
 
 ---
@@ -237,7 +248,7 @@ php artisan guard:cleanup
 
 **Trusted proxies:** Guard uses `$request->ip()` — the same method LogScope uses. If your app is behind a load balancer or proxy, configure Laravel's trusted proxies correctly so the real client IP is resolved, not the proxy IP.
 
-**HMAC signatures:** All sync requests are signed with `GUARD_SYNC_SECRET` using `hash_hmac('sha256', ...)`. Use a long, random secret and keep it identical across environments.
+**HMAC signatures:** All sync requests are signed with `WATCHTOWER_SYNC_SECRET` using `hash_hmac('sha256', ...)`. Use a long, random secret and keep it identical across environments.
 
 **Redis TTL:** The blacklist Redis hash has a 24-hour TTL as a safety net. If Redis is flushed, the cache rebuilds from DB automatically on the next request boot.
 
@@ -245,7 +256,7 @@ php artisan guard:cleanup
 
 ## 🤝 Contributing
 
-Contributions are welcome. Please open an issue or submit a pull request on [GitHub](https://github.com/AhmedMerza/laravel-logscope-guard).
+Contributions are welcome. Please open an issue or submit a pull request on [GitHub](https://github.com/AhmedMerza/laravel-watchtower).
 
 ---
 

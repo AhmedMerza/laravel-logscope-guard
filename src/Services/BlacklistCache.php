@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Services;
+namespace Watchtower\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Redis;
-use LogScopeGuard\Models\BlacklistedIp;
+use Watchtower\Models\BlacklistedIp;
 
 class BlacklistCache
 {
@@ -18,7 +18,7 @@ class BlacklistCache
 
     public function __construct()
     {
-        $config = config('logscope-guard.cache');
+        $config = config('watchtower.cache');
         $this->key = $config['key'];
         $this->ttlSeconds = (int) $config['ttl_hours'] * 3600;
         $this->connection = $config['connection'];
@@ -47,7 +47,7 @@ class BlacklistCache
 
     /**
      * Rebuild the entire Redis hash from the DB.
-     * Called after every block/unblock and after guard:sync.
+     * Called after every block/unblock and after watchtower:sync.
      */
     public function rebuild(): void
     {
@@ -59,7 +59,7 @@ class BlacklistCache
         } catch (\Throwable $e) {
             // Table doesn't exist yet (migration not run) or DB unavailable —
             // log and bail, keeping whatever Redis data was already there.
-            \Illuminate\Support\Facades\Log::channel(config('logscope-guard.log_channel', 'stack'))
+            \Illuminate\Support\Facades\Log::channel(config('watchtower.log_channel', 'stack'))
                 ->warning('LogScope Guard: cache rebuild failed, keeping existing Redis data', [
                     'error' => $e->getMessage(),
                 ]);

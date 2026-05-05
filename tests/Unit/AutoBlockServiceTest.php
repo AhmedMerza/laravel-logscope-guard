@@ -5,11 +5,11 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
-use LogScopeGuard\Enums\BlockSource;
-use LogScopeGuard\Models\BlacklistedIp;
-use LogScopeGuard\Services\AutoBlockService;
-use LogScopeGuard\Services\BlacklistCache;
-use LogScopeGuard\Services\BlacklistService;
+use Watchtower\Enums\BlockSource;
+use Watchtower\Models\BlacklistedIp;
+use Watchtower\Services\AutoBlockService;
+use Watchtower\Services\BlacklistCache;
+use Watchtower\Services\BlacklistService;
 
 beforeEach(function () {
     Redis::shouldReceive('connection')->andReturnSelf()->byDefault();
@@ -22,8 +22,8 @@ beforeEach(function () {
     Event::fake();
     Queue::fake();
 
-    config()->set('logscope-guard.auto_block.enabled', true);
-    config()->set('logscope-guard.auto_block.block_duration_minutes', 60);
+    config()->set('watchtower.auto_block.enabled', true);
+    config()->set('watchtower.auto_block.block_duration_minutes', 60);
 
     $this->cache = new BlacklistCache;
     $this->blacklist = new BlacklistService($this->cache);
@@ -31,7 +31,7 @@ beforeEach(function () {
 });
 
 it('does nothing when auto-block is disabled', function () {
-    config()->set('logscope-guard.auto_block.enabled', false);
+    config()->set('watchtower.auto_block.enabled', false);
 
     // Create a log entry that would normally trigger a block
     \Illuminate\Support\Facades\DB::table('log_entries')->insert([
@@ -44,7 +44,7 @@ it('does nothing when auto-block is disabled', function () {
         'updated_at'  => now(),
     ]);
 
-    config()->set('logscope-guard.auto_block.rules', [[
+    config()->set('watchtower.auto_block.rules', [[
         'level'            => 'error',
         'message_contains' => null,
         'count'            => 1,
@@ -57,7 +57,7 @@ it('does nothing when auto-block is disabled', function () {
 });
 
 it('does nothing when no rules are configured', function () {
-    config()->set('logscope-guard.auto_block.rules', []);
+    config()->set('watchtower.auto_block.rules', []);
 
     $this->service->run();
 
@@ -65,7 +65,7 @@ it('does nothing when no rules are configured', function () {
 });
 
 it('blocks an IP that exceeds the rule threshold', function () {
-    config()->set('logscope-guard.auto_block.rules', [[
+    config()->set('watchtower.auto_block.rules', [[
         'level'            => 'error',
         'message_contains' => null,
         'count'            => 3,
@@ -93,7 +93,7 @@ it('blocks an IP that exceeds the rule threshold', function () {
 });
 
 it('does not block an IP below the threshold', function () {
-    config()->set('logscope-guard.auto_block.rules', [[
+    config()->set('watchtower.auto_block.rules', [[
         'level'            => 'error',
         'message_contains' => null,
         'count'            => 10,
@@ -118,7 +118,7 @@ it('does not block an IP below the threshold', function () {
 });
 
 it('matches message_contains filter correctly', function () {
-    config()->set('logscope-guard.auto_block.rules', [[
+    config()->set('watchtower.auto_block.rules', [[
         'level'            => null,
         'message_contains' => '404',
         'count'            => 2,
@@ -158,8 +158,8 @@ it('matches message_contains filter correctly', function () {
 });
 
 it('skips IPs in the never-block whitelist', function () {
-    config()->set('logscope-guard.never_block', ['9.9.9.9']);
-    config()->set('logscope-guard.auto_block.rules', [[
+    config()->set('watchtower.never_block', ['9.9.9.9']);
+    config()->set('watchtower.auto_block.rules', [[
         'level'            => 'error',
         'message_contains' => null,
         'count'            => 1,
@@ -182,7 +182,7 @@ it('skips IPs in the never-block whitelist', function () {
 });
 
 it('skips IPs that are already blocked', function () {
-    config()->set('logscope-guard.auto_block.rules', [[
+    config()->set('watchtower.auto_block.rules', [[
         'level'            => 'error',
         'message_contains' => null,
         'count'            => 1,
@@ -196,7 +196,7 @@ it('skips IPs that are already blocked', function () {
     ]);
 
     Redis::shouldReceive('hget')
-        ->with('logscope_guard:blacklist', '3.3.3.3')
+        ->with('watchtower:blacklist', '3.3.3.3')
         ->andReturn('');
 
     \Illuminate\Support\Facades\DB::table('log_entries')->insert([
@@ -216,7 +216,7 @@ it('skips IPs that are already blocked', function () {
 });
 
 it('ignores log entries outside the time window', function () {
-    config()->set('logscope-guard.auto_block.rules', [[
+    config()->set('watchtower.auto_block.rules', [[
         'level'            => 'error',
         'message_contains' => null,
         'count'            => 1,

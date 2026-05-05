@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Console\Commands;
+namespace Watchtower\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use LogScopeGuard\Enums\BlockSource;
-use LogScopeGuard\Models\BlacklistedIp;
-use LogScopeGuard\Services\BlacklistCache;
+use Watchtower\Enums\BlockSource;
+use Watchtower\Models\BlacklistedIp;
+use Watchtower\Services\BlacklistCache;
 
 class SyncCommand extends Command
 {
-    protected $signature = 'guard:sync';
+    protected $signature = 'watchtower:sync';
 
     protected $description = 'Pull the blacklist from the master environment and rebuild the local Redis cache';
 
@@ -24,28 +24,28 @@ class SyncCommand extends Command
 
     public function handle(): int
     {
-        $masterUrl = config('logscope-guard.sync.master_url');
-        $secret = config('logscope-guard.sync.secret');
+        $masterUrl = config('watchtower.sync.master_url');
+        $secret = config('watchtower.sync.secret');
 
         if (! $masterUrl) {
-            $this->error('GUARD_MASTER_URL is not configured. Set it in your .env file.');
+            $this->error('WATCHTOWER_MASTER_URL is not configured. Set it in your .env file.');
 
             return self::FAILURE;
         }
 
         $timestamp = now()->timestamp;
-        $signature = hash_hmac('sha256', $timestamp.'GET/guard/api/blacklist', $secret);
+        $signature = hash_hmac('sha256', $timestamp.'GET/watchtower/api/blacklist', $secret);
 
         try {
             $response = Http::withHeaders([
-                'X-Guard-Timestamp' => $timestamp,
-                'X-Guard-Signature' => $signature,
-                'Accept'            => 'application/json',
-            ])->get($masterUrl.'/guard/api/blacklist');
+                'X-Watchtower-Timestamp' => $timestamp,
+                'X-Watchtower-Signature' => $signature,
+                'Accept'                 => 'application/json',
+            ])->get($masterUrl.'/watchtower/api/blacklist');
 
             if (! $response->successful()) {
                 $this->error("Sync failed — master returned HTTP {$response->status()}.");
-                Log::channel(config('logscope-guard.log_channel', 'stack'))->error('LogScope Guard: sync failed', ['status' => $response->status()]);
+                Log::channel(config('watchtower.log_channel', 'stack'))->error('Watchtower: sync failed', ['status' => $response->status()]);
 
                 return self::FAILURE;
             }
@@ -86,7 +86,7 @@ class SyncCommand extends Command
 
         } catch (\Throwable $e) {
             $this->error('Sync error: '.$e->getMessage());
-            Log::channel(config('logscope-guard.log_channel', 'stack'))->error('LogScope Guard: sync exception', ['error' => $e->getMessage()]);
+            Log::channel(config('watchtower.log_channel', 'stack'))->error('Watchtower: sync exception', ['error' => $e->getMessage()]);
 
             return self::FAILURE;
         }

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Services;
+namespace Watchtower\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use LogScopeGuard\Enums\BlockSource;
+use Watchtower\Enums\BlockSource;
 
 class AutoBlockService
 {
@@ -14,12 +14,12 @@ class AutoBlockService
 
     public function run(): void
     {
-        if (! config('logscope-guard.auto_block.enabled', false)) {
+        if (! config('watchtower.auto_block.enabled', false)) {
             return;
         }
 
-        $rules = config('logscope-guard.auto_block.rules', []);
-        $durationMinutes = (int) config('logscope-guard.auto_block.block_duration_minutes', 60);
+        $rules = config('watchtower.auto_block.rules', []);
+        $durationMinutes = (int) config('watchtower.auto_block.block_duration_minutes', 60);
 
         foreach ($rules as $rule) {
             $this->applyRule($rule, $durationMinutes);
@@ -74,7 +74,7 @@ class AutoBlockService
                 ]);
             } catch (\RuntimeException $e) {
                 // IP is in the never-block whitelist — skip silently
-                Log::channel(config('logscope-guard.log_channel', 'stack'))
+                Log::channel(config('watchtower.log_channel', 'stack'))
                     ->debug('LogScope Guard: auto-block skipped for whitelisted IP', ['ip' => $ip]);
             }
         }

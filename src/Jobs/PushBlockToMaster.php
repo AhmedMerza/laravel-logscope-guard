@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Jobs;
+namespace Watchtower\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use LogScopeGuard\Models\BlacklistedIp;
+use Watchtower\Models\BlacklistedIp;
 
 class PushBlockToMaster implements ShouldQueue
 {
@@ -25,8 +25,8 @@ class PushBlockToMaster implements ShouldQueue
 
     public function handle(): void
     {
-        $masterUrl = config('logscope-guard.sync.master_url');
-        $secret = config('logscope-guard.sync.secret');
+        $masterUrl = config('watchtower.sync.master_url');
+        $secret = config('watchtower.sync.secret');
 
         if (! $masterUrl) {
             return;
@@ -42,13 +42,13 @@ class PushBlockToMaster implements ShouldQueue
 
         $timestamp = now()->timestamp;
         $body = json_encode($payload);
-        $signature = hash_hmac('sha256', $timestamp.'POST/guard/api/block'.$body, $secret);
+        $signature = hash_hmac('sha256', $timestamp.'POST/watchtower/api/block'.$body, $secret);
 
         $response = Http::withHeaders([
-            'X-Guard-Timestamp' => $timestamp,
-            'X-Guard-Signature' => $signature,
-            'Content-Type'      => 'application/json',
-        ])->post($masterUrl.'/guard/api/block', $payload);
+            'X-Watchtower-Timestamp' => $timestamp,
+            'X-Watchtower-Signature' => $signature,
+            'Content-Type'           => 'application/json',
+        ])->post($masterUrl.'/watchtower/api/block', $payload);
 
         if (! $response->successful()) {
             throw new \RuntimeException("Master returned HTTP {$response->status()} for IP {$this->record->ip}");
@@ -57,7 +57,7 @@ class PushBlockToMaster implements ShouldQueue
 
     public function failed(\Throwable $e): void
     {
-        Log::channel(config('logscope-guard.log_channel', 'stack'))->warning('LogScope Guard: PushBlockToMaster failed', [
+        Log::channel(config('watchtower.log_channel', 'stack'))->warning('Watchtower: PushBlockToMaster failed', [
             'ip'    => $this->record->ip,
             'error' => $e->getMessage(),
         ]);

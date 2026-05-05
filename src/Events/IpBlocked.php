@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Events;
+namespace Watchtower\Events;
 
-use LogScopeGuard\Models\BlacklistedIp;
+use Watchtower\Models\BlacklistedIp;
 
 class IpBlocked
 {

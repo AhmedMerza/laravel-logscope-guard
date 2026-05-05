@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Request;
-use LogScopeGuard\Http\Middleware\BlockedIpMiddleware;
-use LogScopeGuard\Services\BlacklistCache;
+use Watchtower\Http\Middleware\BlockedIpMiddleware;
+use Watchtower\Services\BlacklistCache;
 
 beforeEach(function () {
     $this->cache = Mockery::mock(BlacklistCache::class);
@@ -35,7 +35,7 @@ it('passes through for an unblocked IP', function () {
 });
 
 it('passes through for a whitelisted IP even if Redis says blocked', function () {
-    config()->set('logscope-guard.never_block', ['127.0.0.1']);
+    config()->set('watchtower.never_block', ['127.0.0.1']);
     $this->cache->shouldNotReceive('isBlocked');
 
     $request = Request::create('/test', 'GET');
@@ -47,7 +47,7 @@ it('passes through for a whitelisted IP even if Redis says blocked', function ()
 });
 
 it('passes through all requests when Guard is disabled', function () {
-    config()->set('logscope-guard.enabled', false);
+    config()->set('watchtower.enabled', false);
     $this->cache->shouldNotReceive('isBlocked');
 
     $request = Request::create('/test', 'GET');
@@ -71,7 +71,7 @@ it('normalizes IPv4-mapped IPv6 before checking Redis', function () {
 });
 
 it('redirects instead of 403 when block_response redirect is configured', function () {
-    config()->set('logscope-guard.block_response.redirect', 'https://example.com/blocked');
+    config()->set('watchtower.block_response.redirect', 'https://example.com/blocked');
     $this->cache->shouldReceive('isBlocked')->with('1.2.3.4')->andReturn(true);
 
     $request = Request::create('/test', 'GET');

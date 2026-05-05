@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use LogScopeGuard\Enums\BlockSource;
-use LogScopeGuard\Jobs\PushBlockToMaster;
-use LogScopeGuard\Models\BlacklistedIp;
+use Watchtower\Enums\BlockSource;
+use Watchtower\Jobs\PushBlockToMaster;
+use Watchtower\Models\BlacklistedIp;
 
 beforeEach(function () {
-    config()->set('logscope-guard.sync.master_url', 'https://master.example.com');
-    config()->set('logscope-guard.sync.secret', 'test-secret');
-    config()->set('logscope-guard.log_channel', 'stack');
+    config()->set('watchtower.sync.master_url', 'https://master.example.com');
+    config()->set('watchtower.sync.secret', 'test-secret');
+    config()->set('watchtower.log_channel', 'stack');
 
     $this->record = BlacklistedIp::create([
         'ip'         => '1.2.3.4',
@@ -23,22 +23,22 @@ beforeEach(function () {
 
 it('posts to master with an HMAC signature', function () {
     Http::fake([
-        'master.example.com/guard/api/block' => Http::response(['ok' => true], 200),
+        'master.example.com/watchtower/api/block' => Http::response(['ok' => true], 200),
     ]);
 
     (new PushBlockToMaster($this->record))->handle();
 
     Http::assertSent(function ($request) {
-        return $request->url() === 'https://master.example.com/guard/api/block'
-            && $request->hasHeader('X-Guard-Signature')
-            && $request->hasHeader('X-Guard-Timestamp')
+        return $request->url() === 'https://master.example.com/watchtower/api/block'
+            && $request->hasHeader('X-Watchtower-Signature')
+            && $request->hasHeader('X-Watchtower-Timestamp')
             && $request['ip'] === '1.2.3.4';
     });
 });
 
 it('throws a RuntimeException on non-2xx response so the queue retries', function () {
     Http::fake([
-        'master.example.com/guard/api/block' => Http::response([], 500),
+        'master.example.com/watchtower/api/block' => Http::response([], 500),
     ]);
 
     expect(fn () => (new PushBlockToMaster($this->record))->handle())
@@ -46,7 +46,7 @@ it('throws a RuntimeException on non-2xx response so the queue retries', functio
 });
 
 it('does nothing when master URL is not configured', function () {
-    config()->set('logscope-guard.sync.master_url', null);
+    config()->set('watchtower.sync.master_url', null);
 
     Http::fake();
 
@@ -58,7 +58,7 @@ it('does nothing when master URL is not configured', function () {
 it('logs a warning on final failure via failed()', function () {
     Log::shouldReceive('channel')->with('stack')->andReturnSelf();
     Log::shouldReceive('warning')->once()->with(
-        'LogScope Guard: PushBlockToMaster failed',
+        'Watchtower: PushBlockToMaster failed',
         \Mockery::on(fn ($ctx) => $ctx['ip'] === '1.2.3.4')
     );
 

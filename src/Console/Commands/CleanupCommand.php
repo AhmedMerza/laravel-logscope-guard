@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Console\Commands;
+namespace Watchtower\Console\Commands;
 
 use Illuminate\Console\Command;
-use LogScopeGuard\Models\BlacklistedIp;
-use LogScopeGuard\Services\BlacklistCache;
+use Watchtower\Models\BlacklistedIp;
+use Watchtower\Services\BlacklistCache;
 
 class CleanupCommand extends Command
 {
-    protected $signature = 'guard:cleanup';
+    protected $signature = 'watchtower:cleanup';
 
     protected $description = 'Delete expired temporary blocks from the database and rebuild the Redis cache';
 

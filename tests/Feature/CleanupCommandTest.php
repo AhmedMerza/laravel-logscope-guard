@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Redis;
-use LogScopeGuard\Enums\BlockSource;
-use LogScopeGuard\Models\BlacklistedIp;
+use Watchtower\Enums\BlockSource;
+use Watchtower\Models\BlacklistedIp;
 
 beforeEach(function () {
     Redis::shouldReceive('connection')->andReturnSelf()->byDefault();
@@ -23,7 +23,7 @@ it('deletes expired temporary blocks', function () {
         'expires_at' => now()->subHour(),
     ]);
 
-    $this->artisan('guard:cleanup')
+    $this->artisan('watchtower:cleanup')
         ->assertSuccessful()
         ->expectsOutputToContain('Removed 1 expired block');
 
@@ -38,7 +38,7 @@ it('does not delete blocks that have not expired yet', function () {
         'expires_at' => now()->addHour(),
     ]);
 
-    $this->artisan('guard:cleanup')->assertSuccessful();
+    $this->artisan('watchtower:cleanup')->assertSuccessful();
 
     $this->assertDatabaseHas('blacklisted_ips', ['ip' => '2.2.2.2']);
 });
@@ -51,7 +51,7 @@ it('never deletes permanent blocks (expires_at is null)', function () {
         'expires_at' => null,
     ]);
 
-    $this->artisan('guard:cleanup')
+    $this->artisan('watchtower:cleanup')
         ->assertSuccessful()
         ->expectsOutputToContain('Nothing to clean up');
 
@@ -72,17 +72,17 @@ it('only rebuilds the cache when records were deleted', function () {
         'expires_at' => null,
     ]);
 
-    $this->artisan('guard:cleanup')->assertSuccessful();
+    $this->artisan('watchtower:cleanup')->assertSuccessful();
 });
 
 it('reports nothing to clean up when the table is empty', function () {
-    $this->artisan('guard:cleanup')
+    $this->artisan('watchtower:cleanup')
         ->assertSuccessful()
         ->expectsOutputToContain('Nothing to clean up');
 });
 
-it('can still be run manually even when GUARD_CLEANUP_ENABLED is false', function () {
-    config()->set('logscope-guard.cleanup.enabled', false);
+it('can still be run manually even when WATCHTOWER_CLEANUP_ENABLED is false', function () {
+    config()->set('watchtower.cleanup.enabled', false);
 
     BlacklistedIp::create([
         'ip'         => '5.5.5.5',
@@ -92,7 +92,7 @@ it('can still be run manually even when GUARD_CLEANUP_ENABLED is false', functio
     ]);
 
     // The config flag only stops the scheduler — the command itself still works
-    $this->artisan('guard:cleanup')
+    $this->artisan('watchtower:cleanup')
         ->assertSuccessful()
         ->expectsOutputToContain('Removed 1 expired block');
 

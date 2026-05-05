@@ -1,9 +1,9 @@
 {{--
     LogScope Guard — IP Actions partial
-    Included via @includeIf('logscope-guard::partials.ip-actions') in detail-panel.blade.php.
+    Included via @includeIf('watchtower::partials.ip-actions') in detail-panel.blade.php.
     Renders nothing if Guard is not enabled.
 --}}
-@if(config('logscope-guard.enabled', false))
+@if(config('watchtower.enabled', false))
 <div x-data="guardIpActions()"
      x-init="init()"
      @logscope:log-selected.window="onLogSelected($event.detail.log)">

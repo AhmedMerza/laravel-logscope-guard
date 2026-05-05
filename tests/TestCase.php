@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Tests;
+namespace Watchtower\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use LogScopeGuard\LogScopeGuardServiceProvider;
+use Watchtower\WatchtowerServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -15,13 +15,13 @@ class TestCase extends Orchestra
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'LogScopeGuard\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName) => 'Watchtower\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
     }
 
     protected function getPackageProviders($app): array
     {
-        return [LogScopeGuardServiceProvider::class];
+        return [WatchtowerServiceProvider::class];
     }
 
     public function getEnvironmentSetUp($app): void

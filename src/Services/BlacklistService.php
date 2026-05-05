@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Services;
+namespace Watchtower\Services;
 
-use LogScopeGuard\Enums\BlockSource;
-use LogScopeGuard\Events\IpBlocked;
-use LogScopeGuard\Jobs\PushBlockToMaster;
-use LogScopeGuard\Models\BlacklistedIp;
+use Watchtower\Enums\BlockSource;
+use Watchtower\Events\IpBlocked;
+use Watchtower\Jobs\PushBlockToMaster;
+use Watchtower\Models\BlacklistedIp;
 
 class BlacklistService
 {
@@ -44,9 +44,9 @@ class BlacklistService
 
         event(new IpBlocked($record));
 
-        if (config('logscope-guard.sync.master_url')) {
+        if (config('watchtower.sync.master_url')) {
             PushBlockToMaster::dispatch($record)
-                ->onQueue(config('logscope-guard.notifications.queue', 'default'));
+                ->onQueue(config('watchtower.notifications.queue', 'default'));
         }
 
         return $record;
@@ -99,6 +99,6 @@ class BlacklistService
 
     private function isNeverBlock(string $ip): bool
     {
-        return in_array($ip, config('logscope-guard.never_block', []), true);
+        return in_array($ip, config('watchtower.never_block', []), true);
     }
 }

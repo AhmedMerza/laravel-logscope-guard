@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace LogScopeGuard\Models;
+namespace Watchtower\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
-use LogScopeGuard\Enums\BlockSource;
+use Watchtower\Enums\BlockSource;
 
 class BlacklistedIp extends Model
 {

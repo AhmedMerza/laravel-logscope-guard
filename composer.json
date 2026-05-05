@@ -1,5 +1,5 @@
 {
-    "name": "ahmedmerza/logscope-guard",
+    "name": "ahmedmerza/watchtower",
     "description": "IP blocking and cross-environment blacklist sync for LogScope",
     "keywords": [
         "laravel",
@@ -8,7 +8,7 @@
         "ip-blocking",
         "security"
     ],
-    "homepage": "https://github.com/ahmedmerza/laravel-logscope-guard",
+    "homepage": "https://github.com/ahmedmerza/laravel-watchtower",
     "license": "MIT",
     "authors": [
         {
@@ -38,12 +38,12 @@
     },
     "autoload": {
         "psr-4": {
-            "LogScopeGuard\\": "src/"
+            "Watchtower\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "LogScopeGuard\\Tests\\": "tests/"
+            "Watchtower\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -64,7 +64,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "LogScopeGuard\\LogScopeGuardServiceProvider"
+                "Watchtower\\WatchtowerServiceProvider"
             ]
         }
     },
