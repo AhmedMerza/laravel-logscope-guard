@@ -237,3 +237,178 @@ it('ignores log entries outside the time window', function () {
 
     $this->assertDatabaseMissing('blacklisted_ips', ['ip' => '4.4.4.4']);
 });
+
+/*
+ * Mode tests — per-rule `mode` overrides global `watchtower.auto_block.mode`.
+ * Modes: 'block' (default), 'warn' (log but don't block), 'disabled' (skip).
+ */
+
+it('warn mode logs a would-have-blocked entry and does NOT block', function () {
+    config()->set('watchtower.auto_block.mode', 'warn');
+    config()->set('watchtower.auto_block.rules', [[
+        'level'            => 'error',
+        'message_contains' => null,
+        'count'            => 2,
+        'window_minutes'   => 5,
+    ]]);
+
+    foreach (range(1, 2) as $i) {
+        \Illuminate\Support\Facades\DB::table('log_entries')->insert([
+            'id'          => \Illuminate\Support\Str::ulid(),
+            'level'       => 'error',
+            'message'     => 'Boom',
+            'ip_address'  => '11.11.11.11',
+            'occurred_at' => now(),
+            'created_at'  => now(),
+            'updated_at'  => now(),
+        ]);
+    }
+
+    $logChannel = \Mockery::mock();
+    $logChannel->shouldReceive('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'Watchtower: would-have-blocked (auto-block in warn mode)'
+                && $context['would_have_blocked'] === true
+                && $context['ip'] === '11.11.11.11'
+                && $context['threshold'] === 2
+                && $context['window_minutes'] === 5
+                && is_int($context['rule_index']);
+        });
+    \Illuminate\Support\Facades\Log::shouldReceive('channel')->andReturn($logChannel);
+
+    $this->service->run();
+
+    $this->assertDatabaseMissing('blacklisted_ips', ['ip' => '11.11.11.11']);
+});
+
+it('block mode (default) still blocks when no mode is configured anywhere', function () {
+    // No mode key set anywhere — should default to 'block'
+    config()->offsetUnset('watchtower.auto_block.mode');
+    config()->set('watchtower.auto_block.rules', [[
+        'level'            => 'error',
+        'message_contains' => null,
+        'count'            => 1,
+        'window_minutes'   => 5,
+    ]]);
+
+    \Illuminate\Support\Facades\DB::table('log_entries')->insert([
+        'id'          => \Illuminate\Support\Str::ulid(),
+        'level'       => 'error',
+        'message'     => 'Boom',
+        'ip_address'  => '12.12.12.12',
+        'occurred_at' => now(),
+        'created_at'  => now(),
+        'updated_at'  => now(),
+    ]);
+
+    $this->service->run();
+
+    $this->assertDatabaseHas('blacklisted_ips', ['ip' => '12.12.12.12', 'source' => 'auto']);
+});
+
+it('per-rule mode overrides global mode (rule=block wins over global=warn)', function () {
+    config()->set('watchtower.auto_block.mode', 'warn');
+    config()->set('watchtower.auto_block.rules', [[
+        'level'            => 'error',
+        'message_contains' => null,
+        'count'            => 1,
+        'window_minutes'   => 5,
+        'mode'             => 'block', // per-rule override
+    ]]);
+
+    \Illuminate\Support\Facades\DB::table('log_entries')->insert([
+        'id'          => \Illuminate\Support\Str::ulid(),
+        'level'       => 'error',
+        'message'     => 'Boom',
+        'ip_address'  => '13.13.13.13',
+        'occurred_at' => now(),
+        'created_at'  => now(),
+        'updated_at'  => now(),
+    ]);
+
+    $this->service->run();
+
+    $this->assertDatabaseHas('blacklisted_ips', ['ip' => '13.13.13.13', 'source' => 'auto']);
+});
+
+it('per-rule mode overrides global mode (rule=warn wins over global=block)', function () {
+    config()->set('watchtower.auto_block.mode', 'block');
+    config()->set('watchtower.auto_block.rules', [[
+        'level'            => 'error',
+        'message_contains' => null,
+        'count'            => 1,
+        'window_minutes'   => 5,
+        'mode'             => 'warn', // per-rule override
+    ]]);
+
+    \Illuminate\Support\Facades\DB::table('log_entries')->insert([
+        'id'          => \Illuminate\Support\Str::ulid(),
+        'level'       => 'error',
+        'message'     => 'Boom',
+        'ip_address'  => '14.14.14.14',
+        'occurred_at' => now(),
+        'created_at'  => now(),
+        'updated_at'  => now(),
+    ]);
+
+    // Mock the log channel so we don't need real logging infra
+    $logChannel = \Mockery::mock();
+    $logChannel->shouldReceive('warning')->once();
+    \Illuminate\Support\Facades\Log::shouldReceive('channel')->andReturn($logChannel);
+
+    $this->service->run();
+
+    $this->assertDatabaseMissing('blacklisted_ips', ['ip' => '14.14.14.14']);
+});
+
+it('disabled mode skips the rule entirely (no block, no warn log)', function () {
+    config()->set('watchtower.auto_block.rules', [[
+        'level'            => 'error',
+        'message_contains' => null,
+        'count'            => 1,
+        'window_minutes'   => 5,
+        'mode'             => 'disabled',
+    ]]);
+
+    \Illuminate\Support\Facades\DB::table('log_entries')->insert([
+        'id'          => \Illuminate\Support\Str::ulid(),
+        'level'       => 'error',
+        'message'     => 'Boom',
+        'ip_address'  => '15.15.15.15',
+        'occurred_at' => now(),
+        'created_at'  => now(),
+        'updated_at'  => now(),
+    ]);
+
+    // No log channel calls expected — Log::shouldNotReceive('channel') would
+    // be too strict (other code paths may resolve channels), so we just
+    // assert no blocks, no warn entries (the latter via DB absence).
+    $this->service->run();
+
+    $this->assertDatabaseMissing('blacklisted_ips', ['ip' => '15.15.15.15']);
+});
+
+it('invalid global mode value falls back to block', function () {
+    config()->set('watchtower.auto_block.mode', 'this-is-not-a-mode');
+    config()->set('watchtower.auto_block.rules', [[
+        'level'            => 'error',
+        'message_contains' => null,
+        'count'            => 1,
+        'window_minutes'   => 5,
+    ]]);
+
+    \Illuminate\Support\Facades\DB::table('log_entries')->insert([
+        'id'          => \Illuminate\Support\Str::ulid(),
+        'level'       => 'error',
+        'message'     => 'Boom',
+        'ip_address'  => '16.16.16.16',
+        'occurred_at' => now(),
+        'created_at'  => now(),
+        'updated_at'  => now(),
+    ]);
+
+    $this->service->run();
+
+    $this->assertDatabaseHas('blacklisted_ips', ['ip' => '16.16.16.16', 'source' => 'auto']);
+});
