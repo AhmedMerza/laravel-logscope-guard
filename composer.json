@@ -19,7 +19,6 @@
     ],
     "require": {
         "php": "^8.2",
-        "ahmedmerza/logscope": ">=1.5.2",
         "spatie/laravel-package-tools": "^1.16",
         "illuminate/contracts": ">=10.0",
         "illuminate/support": ">=10.0",
@@ -67,6 +66,9 @@
                 "LogScopeGuard\\LogScopeGuardServiceProvider"
             ]
         }
+    },
+    "suggest": {
+        "ahmedmerza/logscope": "Integrates the Block IP button into the LogScope log detail panel. Requires >=1.5.2."
     },
     "minimum-stability": "dev",
     "prefer-stable": true

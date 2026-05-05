@@ -33,24 +33,29 @@ class AutoBlockService
         $level           = $rule['level'] ?? null;
         $messageContains = $rule['message_contains'] ?? null;
 
-        $logsTable = config('logscope.table', 'log_entries');
+        $table   = config('logscope-guard.auto_block.table', 'log_entries');
+        $cols    = config('logscope-guard.auto_block.columns', []);
+        $colIp   = $cols['ip'] ?? 'ip_address';
+        $colTime = $cols['occurred_at'] ?? 'occurred_at';
+        $colLvl  = $cols['level'] ?? 'level';
+        $colMsg  = $cols['message'] ?? 'message';
 
-        $query = DB::table($logsTable)
-            ->select('ip_address', DB::raw('count(*) as hit_count'))
-            ->whereNotNull('ip_address')
-            ->where('occurred_at', '>=', now()->subMinutes($windowMinutes))
-            ->groupBy('ip_address')
+        $query = DB::table($table)
+            ->select($colIp, DB::raw('count(*) as hit_count'))
+            ->whereNotNull($colIp)
+            ->where($colTime, '>=', now()->subMinutes($windowMinutes))
+            ->groupBy($colIp)
             ->having('hit_count', '>=', $threshold);
 
         if ($level) {
-            $query->where('level', $level);
+            $query->where($colLvl, $level);
         }
 
         if ($messageContains) {
-            $query->where('message', 'like', '%'.$messageContains.'%');
+            $query->where($colMsg, 'like', '%'.$messageContains.'%');
         }
 
-        $offenders = $query->pluck('ip_address');
+        $offenders = $query->pluck($colIp);
 
         $expiresAt = now()->addMinutes($durationMinutes);
         $reason = sprintf(

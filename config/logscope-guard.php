@@ -82,6 +82,18 @@ return [
     'auto_block' => [
         'enabled'                => env('GUARD_AUTO_BLOCK_ENABLED', false),
         'block_duration_minutes' => env('GUARD_AUTO_BLOCK_DURATION', 60),
+
+        // The table and columns to query for auto-block rules.
+        // Defaults to LogScope's log_entries table.
+        // Override if you use a different log table.
+        'table'   => env('GUARD_AUTO_BLOCK_TABLE', 'log_entries'),
+        'columns' => [
+            'ip'          => env('GUARD_AUTO_BLOCK_COL_IP', 'ip_address'),
+            'level'       => env('GUARD_AUTO_BLOCK_COL_LEVEL', 'level'),
+            'message'     => env('GUARD_AUTO_BLOCK_COL_MESSAGE', 'message'),
+            'occurred_at' => env('GUARD_AUTO_BLOCK_COL_TIME', 'occurred_at'),
+        ],
+
         'rules'                  => [
             // Example:
             // [
@@ -149,6 +161,25 @@ return [
     */
 
     'log_channel' => env('GUARD_LOG_CHANNEL', 'stack'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Middleware
+    |--------------------------------------------------------------------------
+    |
+    | Middleware applied to Guard's management UI and API routes.
+    |
+    | When LogScope is installed, its Authorize middleware is appended
+    | automatically — you don't need to add it here.
+    |
+    | For standalone use (without LogScope), set this to your own auth
+    | middleware, e.g. 'auth', 'auth:sanctum', or a custom gate middleware.
+    |
+    | Example .env: GUARD_MIDDLEWARE=auth
+    |
+    */
+
+    'middleware' => array_filter(explode(',', env('GUARD_MIDDLEWARE', 'web'))),
 
     /*
     |--------------------------------------------------------------------------

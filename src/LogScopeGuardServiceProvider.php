@@ -13,6 +13,7 @@ use LogScopeGuard\Console\Commands\InstallCommand;
 use LogScopeGuard\Console\Commands\SyncCommand;
 use LogScopeGuard\Events\IpBlocked;
 use LogScopeGuard\Http\Controllers\BlockController;
+use LogScopeGuard\Http\Controllers\ManagementController;
 use LogScopeGuard\Http\Middleware\BlockedIpMiddleware;
 use LogScopeGuard\Listeners\NotifyOnBlock;
 use LogScopeGuard\Services\AutoBlockService;
@@ -76,23 +77,30 @@ class LogScopeGuardServiceProvider extends PackageServiceProvider
 
     protected function registerGuardRoutes(): void
     {
-        // Guard routes share LogScope's prefix and Authorize middleware
-        $logscopePrefix = config('logscope.routes.prefix', 'logscope');
-        $logscopeMiddleware = config('logscope.routes.middleware', ['web']);
+        // Base middleware from config (defaults to ['web'])
+        $middleware = config('logscope-guard.middleware', ['web']);
 
-        // Resolve LogScope's Authorize middleware class dynamically so Guard
-        // doesn't hard-depend on LogScope's internal class path
+        // Append LogScope's Authorize middleware dynamically if installed
         $authorizeClass = 'LogScope\\Http\\Middleware\\Authorize';
+        if (class_exists($authorizeClass) && ! in_array($authorizeClass, $middleware)) {
+            $middleware[] = $authorizeClass;
+        }
 
-        $middleware = class_exists($authorizeClass)
-            ? array_merge($logscopeMiddleware, [$authorizeClass])
-            : $logscopeMiddleware;
+        // Use LogScope's route prefix/domain if installed, otherwise 'guard'
+        $prefix = class_exists('LogScope\\LogScope')
+            ? config('logscope.routes.prefix', 'logscope').'/guard'
+            : config('logscope.routes.prefix', 'guard');
+
+        $domain = class_exists('LogScope\\LogScope')
+            ? config('logscope.routes.domain')
+            : null;
 
         Route::group([
-            'prefix'     => $logscopePrefix.'/guard',
+            'prefix'     => $prefix,
             'middleware' => $middleware,
-            'domain'     => config('logscope.routes.domain'),
+            'domain'     => $domain,
         ], function () {
+            Route::get('/', [ManagementController::class, 'index'])->name('logscope-guard.index');
             Route::post('/api/block', [BlockController::class, 'block']);
             Route::delete('/api/block/{ip}', [BlockController::class, 'unblock'])->where('ip', '.*');
             Route::get('/api/status/{ip}', [BlockController::class, 'status'])->where('ip', '.*');
