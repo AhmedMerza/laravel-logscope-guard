@@ -20,6 +20,20 @@ class InstallCommand extends Command
         $this->call('vendor:publish', ['--tag' => 'watchtower-migrations', '--force' => false]);
         $this->call('migrate');
 
+        // Upgrade detection: a customised pre-rename config file at the old
+        // path is now silently ignored by the package (which reads
+        // config('watchtower.*')). Surface this so users don't lose tweaks.
+        $oldConfigPath = function_exists('config_path')
+            ? config_path('logscope-guard.php')
+            : base_path('config/logscope-guard.php');
+
+        if (file_exists($oldConfigPath)) {
+            $this->newLine();
+            $this->warn('⚠️  Found orphaned config file: '.$oldConfigPath);
+            $this->line('   Watchtower now reads from <info>config/watchtower.php</info>. The old file is ignored.');
+            $this->line('   Migrate any customisations into the new file, then delete the old one.');
+        }
+
         $logscopeInstalled = class_exists('LogScope\\LogScope');
 
         $this->newLine();

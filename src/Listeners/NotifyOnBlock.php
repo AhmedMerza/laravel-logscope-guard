@@ -32,7 +32,7 @@ class NotifyOnBlock implements ShouldQueue
                 'blocked_at' => $event->record->created_at->toIso8601String(),
             ]);
         } catch (\Throwable $e) {
-            Log::channel(config('watchtower.log_channel', 'stack'))->warning('LogScope Guard: webhook notification failed', [
+            Log::channel(config('watchtower.log_channel', 'stack'))->warning('Watchtower: webhook notification failed', [
                 'ip'    => $event->record->ip,
                 'error' => $e->getMessage(),
             ]);

@@ -1,7 +1,7 @@
 {{--
-    LogScope Guard — IP Actions partial
+    Watchtower — IP Actions partial
     Included via @includeIf('watchtower::partials.ip-actions') in detail-panel.blade.php.
-    Renders nothing if Guard is not enabled.
+    Renders nothing if Watchtower is not enabled.
 --}}
 @if(config('watchtower.enabled', false))
 <div x-data="guardIpActions()"

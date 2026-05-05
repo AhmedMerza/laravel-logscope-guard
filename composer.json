@@ -1,12 +1,13 @@
 {
-    "name": "ahmedmerza/watchtower",
-    "description": "IP blocking and cross-environment blacklist sync for LogScope",
+    "name": "ahmedmerza/laravel-watchtower",
+    "description": "Active blocking and cross-server coordination at the edge of your Laravel app — IPs (with bots and exploit paths in v1.0).",
     "keywords": [
         "laravel",
-        "logscope",
         "firewall",
         "ip-blocking",
-        "security"
+        "bot-blocking",
+        "security",
+        "logscope"
     ],
     "homepage": "https://github.com/ahmedmerza/laravel-watchtower",
     "license": "MIT",

@@ -71,7 +71,7 @@ Every incoming request is checked against a **Redis Hash** before any middleware
 ## 📦 Installation
 
 ```bash
-composer require ahmedmerza/watchtower
+composer require ahmedmerza/laravel-watchtower
 php artisan watchtower:install
 ```
 
@@ -110,7 +110,7 @@ WATCHTOWER_AUTO_BLOCK_DURATION=60
 WATCHTOWER_WEBHOOK_URL=
 WATCHTOWER_NOTIFICATION_QUEUE=default
 
-# Dedicated log channel for Guard events (sync failures, auto-block skips, etc.)
+# Dedicated log channel for Watchtower events (sync failures, auto-block skips, etc.)
 WATCHTOWER_LOG_CHANNEL=stack
 
 # Automatic cleanup of expired temporary blocks (runs daily)
@@ -134,7 +134,7 @@ By default, blocked IPs receive a plain `403 Access denied.` response. To redire
 
 ## 🌐 Cross-Environment Sync
 
-Guard supports a **master/satellite** topology. One environment (production) is the master. Others (staging, alpha) pull from it.
+Watchtower supports a **master/satellite** topology. One environment (production) is the master. Others (staging, alpha) pull from it.
 
 ### Setup
 
@@ -145,15 +145,15 @@ WATCHTOWER_MASTER_URL=https://your-production-app.com
 WATCHTOWER_SYNC_SECRET=same-secret-on-all-environments
 ```
 
-**On the master app**, expose two routes that satellites call:
+**On the master app**, expose two routes that satellites call. Path and HMAC header names must match what the satellites send (see `SyncCommand` and `PushBlockToMaster` for the exact wire format):
 
 ```php
 // routes/web.php (or api.php) — protect with HMAC middleware
-Route::get('/guard/api/blacklist', fn () => response()->json([
+Route::get('/watchtower/api/blacklist', fn () => response()->json([
     'data' => \Watchtower\Models\BlacklistedIp::active()->get(),
 ]));
 
-Route::post('/guard/api/block', function (Request $request) {
+Route::post('/watchtower/api/block', function (Request $request) {
     app(\Watchtower\Services\BlacklistService::class)->block(
         $request->input('ip'),
         $request->only(['reason', 'source_env', 'expires_at', 'blocked_by'])
@@ -246,7 +246,7 @@ php artisan watchtower:cleanup
 
 ## 🔒 Security Notes
 
-**Trusted proxies:** Guard uses `$request->ip()` — the same method LogScope uses. If your app is behind a load balancer or proxy, configure Laravel's trusted proxies correctly so the real client IP is resolved, not the proxy IP.
+**Trusted proxies:** Watchtower uses `$request->ip()` — the same method LogScope uses. If your app is behind a load balancer or proxy, configure Laravel's trusted proxies correctly so the real client IP is resolved, not the proxy IP.
 
 **HMAC signatures:** All sync requests are signed with `WATCHTOWER_SYNC_SECRET` using `hash_hmac('sha256', ...)`. Use a long, random secret and keep it identical across environments.
 

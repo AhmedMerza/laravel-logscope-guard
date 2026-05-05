@@ -60,7 +60,7 @@ class BlacklistCache
             // Table doesn't exist yet (migration not run) or DB unavailable —
             // log and bail, keeping whatever Redis data was already there.
             \Illuminate\Support\Facades\Log::channel(config('watchtower.log_channel', 'stack'))
-                ->warning('LogScope Guard: cache rebuild failed, keeping existing Redis data', [
+                ->warning('Watchtower: cache rebuild failed, keeping existing Redis data', [
                     'error' => $e->getMessage(),
                 ]);
 

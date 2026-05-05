@@ -75,7 +75,7 @@ class AutoBlockService
             } catch (\RuntimeException $e) {
                 // IP is in the never-block whitelist — skip silently
                 Log::channel(config('watchtower.log_channel', 'stack'))
-                    ->debug('LogScope Guard: auto-block skipped for whitelisted IP', ['ip' => $ip]);
+                    ->debug('Watchtower: auto-block skipped for whitelisted IP', ['ip' => $ip]);
             }
         }
     }
